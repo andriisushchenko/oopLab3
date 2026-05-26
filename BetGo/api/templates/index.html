@@ -1,100 +1,491 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="uk" data-bs-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BetGo - Ставки на Кіберспорт</title>
-    <!-- Підключаємо красиві стилі Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>BetGo - Кіберспорт</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #0f111a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .navbar { background-color: #161925 !important; border-bottom: 1px solid #232738; }
+    .sidebar { background-color: #161925; border-radius: 12px; padding: 15px; border: 1px solid #232738; }
+    .category-item { padding: 10px 15px; border-radius: 8px; color: #a0a5ba; cursor: pointer; transition: 0.2s; margin-bottom: 5px; }
+    .category-item:hover, .category-item.active { background-color: #232738; color: #fff; font-weight: 600; }
+    .card { background-color: #161925; border: 1px solid #232738; border-radius: 12px; }
+    .match-card { background-color: #1c202f; border: 1px solid #2a2e42; border-radius: 10px; margin-bottom: 15px; transition: 0.2s; }
+    .match-card:hover { border-color: #3b425e; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .team-name { font-weight: 600; font-size: 1.1rem; }
+    .vs-badge { background-color: #2a2e42; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; color: #a0a5ba; }
+    .cat-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; background: #0d6efd; color: white; display: inline-block; margin-bottom: 8px;}
+    .odd-btn { background-color: #232738; border: 1px solid #2a2e42; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+    .odd-btn:hover { background-color: #2e3349; border-color: #0d6efd; }
+    .odd-btn.selected { background-color: #0d6efd; border-color: #0d6efd; color: white; }
+    .odd-val { font-weight: 700; font-size: 1.1rem; }
+    .odd-label { font-size: 0.75rem; color: #8e94a8; text-transform: uppercase; }
+    .odd-btn.selected .odd-label { color: #e0e0e0; }
+    .bet-slip { position: sticky; top: 20px; }
+    .bet-info-box { background-color: #0f111a; border-radius: 8px; padding: 12px; border: 1px dashed #3b425e; }
+    .history-item { background-color: #1c202f; border: 1px solid #2a2e42; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
+    #toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; }
+  </style>
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <h1 class="text-center mb-5">🎮 BetGo: Платформа для ставок</h1>
+<body>
 
-        <div class="row">
-            <!-- Блок 1: Поповнення балансу -->
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h3 class="card-title">💰 Поповнення балансу</h3>
-                        <p class="text-muted">Діє для користувача (ID = 1)</p>
+<nav class="navbar navbar-expand-lg navbar-dark mb-4 py-3">
+  <div class="container-fluid px-4">
+    <span class="navbar-brand fs-4 fw-bold text-primary" style="cursor:pointer;" onclick="hideProfile()">BetGo</span>
+    <div id="navInfo" class="d-none d-flex align-items-center gap-3 ms-auto">
+      <div class="text-end me-2">
+        <div class="text-light fw-bold" id="navName"></div>
+        <div class="text-success small fw-bold" id="navBalance">0.00 ₴</div>
+      </div>
 
-                        <div class="input-group mb-3">
-                            <input type="number" id="topupAmount" class="form-control" placeholder="Введіть суму">
-                            <button class="btn btn-success" onclick="topUpBalance()">Поповнити</button>
-                        </div>
-                    </div>
-                </div>
+      <button id="btnAdmin" class="btn btn-warning btn-sm px-3 fw-bold d-none text-dark" onclick="showAdmin()">Адмін-панель</button>
+      <button class="btn btn-outline-info btn-sm px-3" onclick="showProfile()">Профіль</button>
+      <button class="btn btn-outline-danger btn-sm px-3" onclick="logout()">Вихід</button>
+    </div>
+  </div>
+</nav>
+
+<div id="toast-container"></div>
+
+<div class="container-fluid px-4">
+
+  <div id="pageAuth" class="row justify-content-center mt-5">
+    <div class="col-md-4">
+      <div class="card p-4 shadow-lg">
+        <h4 class="text-center mb-4 text-light fw-bold">Вхід у систему</h4>
+        <ul class="nav nav-pills nav-fill mb-4">
+          <li class="nav-item"><button class="nav-link active" id="tabLoginBtn" onclick="switchTab('login')">Логін</button></li>
+          <li class="nav-item"><button class="nav-link" id="tabRegBtn" onclick="switchTab('reg')">Реєстрація</button></li>
+        </ul>
+        <div id="tabLogin">
+          <div class="mb-3"><input class="form-control bg-dark text-light border-secondary" id="loginUser" placeholder="Нікнейм"></div>
+          <div class="mb-4"><input class="form-control bg-dark text-light border-secondary" type="password" id="loginPass" placeholder="Пароль"></div>
+          <button class="btn btn-primary w-100 fw-bold" onclick="doLogin()">УВІЙТИ</button>
+        </div>
+        <div id="tabReg" class="d-none">
+          <div class="mb-3"><input class="form-control bg-dark text-light border-secondary" id="regUser" placeholder="Новий нікнейм"></div>
+          <div class="mb-4"><input class="form-control bg-dark text-light border-secondary" type="password" id="regPass" placeholder="Новий пароль"></div>
+          <button class="btn btn-success w-100 fw-bold" onclick="doRegister()">ЗАРЕЄСТРУВАТИСЯ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pageDash" class="row d-none">
+    <div class="col-md-2 mb-4">
+      <div class="sidebar">
+        <div class="text-muted small fw-bold mb-3 ms-2 text-uppercase">Категорії</div>
+        <div class="category-item active" onclick="filterCategory('Всі', this)">Всі матчі</div>
+        <div class="category-item" onclick="filterCategory('Dota 2', this)">Dota 2</div>
+        <div class="category-item" onclick="filterCategory('CS2', this)">CS2</div>
+        <div class="category-item" onclick="filterCategory('Valorant', this)">Valorant</div>
+        <div class="category-item" onclick="filterCategory('Спорт', this)">Спорт</div>
+      </div>
+    </div>
+
+    <div class="col-md-7 mb-4">
+      <div class="d-flex justify-content-between align-items-end mb-3">
+        <h4 class="text-light fw-bold mb-0" id="currentCategoryTitle">🏆 Всі матчі</h4>
+        <button class="btn btn-sm btn-outline-secondary" onclick="loadMatches()">↻ Оновити</button>
+      </div>
+      <div id="matchList"></div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="bet-slip">
+        <div class="card p-3 mb-4 shadow">
+          <h5 class="card-title text-light border-bottom border-secondary pb-2 mb-3">Купон</h5>
+          <div id="betInfo" class="bet-info-box mb-3 text-center text-muted small">Оберіть подію зліва.</div>
+          <div class="mb-3"><input class="form-control bg-dark text-light border-secondary" type="number" id="betAmount" placeholder="Сума ставки (₴)" min="1"></div>
+          <button class="btn btn-primary w-100 fw-bold" onclick="placeBet()">УКЛАСТИ ПАРІ</button>
+        </div>
+
+        <div class="card p-3 shadow">
+          <h5 class="card-title text-light border-bottom border-secondary pb-2 mb-3">Каса</h5>
+          <label class="form-label text-muted small">Поповнення</label>
+          <div class="d-flex gap-2 mb-2">
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setTopup(100)">100</button>
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setTopup(500)">500</button>
+            <button class="btn btn-sm btn-outline-secondary flex-fill" onclick="setTopup(1000)">1000</button>
+          </div>
+          <input class="form-control bg-dark text-light border-secondary mb-2" type="number" id="topupAmount" placeholder="Сума (₴)">
+          <input class="form-control bg-dark text-light border-secondary mb-3" type="text" id="promoCode" placeholder="Промокод (введіть FREEBET)">
+          <button class="btn btn-success w-100 fw-bold mb-4" onclick="topUp()">ПОПОВНИТИ</button>
+          <hr class="border-secondary mb-3 mt-0">
+          <label class="form-label text-muted small">Виведення коштів</label>
+          <input class="form-control bg-dark text-light border-secondary mb-3" type="number" id="withdrawAmount" placeholder="Сума (₴)">
+          <button class="btn btn-outline-warning w-100 fw-bold" onclick="withdraw()">ВИВЕСТИ КОШТИ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pageProfile" class="row d-none justify-content-center">
+    <div class="col-12 mb-3"><button class="btn btn-outline-secondary" onclick="hideProfile()">← Повернутися до матчів</button></div>
+    <div class="col-md-12 mb-4">
+      <div class="card p-4 shadow text-center border-info">
+        <h3 class="text-light fw-bold mb-1" id="profileName">Нікнейм</h3>
+        <p class="text-muted mb-3">Особистий кабінет</p>
+        <h2 class="text-success fw-bold" id="profileBalance">0.00 ₴</h2>
+      </div>
+    </div>
+    <div class="col-md-6 mb-4">
+      <div class="card p-4 shadow h-100">
+        <h5 class="text-light border-bottom border-secondary pb-2 mb-3">🎲 Історія ставок</h5>
+        <div id="profileBetsList"></div>
+      </div>
+    </div>
+    <div class="col-md-6 mb-4">
+      <div class="card p-4 shadow h-100">
+        <h5 class="text-light border-bottom border-secondary pb-2 mb-3">💳 Історія транзакцій</h5>
+        <div id="profileTxList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- СТОРІНКА АДМІНА -->
+  <div id="pageAdmin" class="row d-none justify-content-center">
+    <div class="col-12 mb-3"><button class="btn btn-outline-secondary" onclick="hideProfile()">← Повернутися до матчів</button></div>
+
+    <!-- Створення матчу -->
+    <div class="col-md-4 mb-4">
+        <div class="card p-4 shadow border-warning">
+            <h5 class="text-warning fw-bold mb-3">Створити матч вручну</h5>
+            <input class="form-control bg-dark text-light border-secondary mb-2" id="admTeam1" placeholder="Команда 1 (П1)">
+            <input class="form-control bg-dark text-light border-secondary mb-3" id="admTeam2" placeholder="Команда 2 (П2)">
+
+            <div class="d-flex gap-2 mb-3">
+                <input type="number" class="form-control bg-dark text-light border-secondary" id="admOdd1" placeholder="КФ 1" step="0.01">
+                <input type="number" class="form-control bg-dark text-light border-secondary" id="admOddX" placeholder="КФ X" step="0.01">
+                <input type="number" class="form-control bg-dark text-light border-secondary" id="admOdd2" placeholder="КФ 2" step="0.01">
             </div>
 
-            <!-- Блок 2: Зробити ставку -->
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h3 class="card-title">🎲 Зробити ставку</h3>
-                        <p class="text-muted">Матч: NAVI vs Vitality (ID = 1)</p>
-
-                        <div class="mb-3">
-                            <label class="form-label">Сума ставки:</label>
-                            <input type="number" id="betAmount" class="form-control mb-3" placeholder="Скільки ставимо?">
-
-                            <label class="form-label">Ваш прогноз:</label>
-                            <select id="betResult" class="form-select mb-4">
-                                <option value="1">Перемога команди 1 (NAVI)</option>
-                                <option value="2">Перемога команди 2 (Vitality)</option>
-                                <option value="3">Нічия</option>
-                            </select>
-
-                            <button class="btn btn-primary w-100" onclick="placeBet()">Зробити ставку</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <select id="admCat" class="form-select bg-dark text-light border-secondary mb-3">
+                <option value="Dota 2">Dota 2</option>
+                <option value="CS2">CS2</option>
+                <option value="Valorant">Valorant</option>
+                <option value="Спорт">Спорт</option>
+            </select>
+            <button class="btn btn-warning w-100 fw-bold" onclick="adminCreateMatch()">Додати матч у лінію</button>
         </div>
     </div>
 
-    <!-- JavaScript для зв'язку з твоїм Python API -->
-    <script>
-        // Відправляємо запит на поповнення
-        async function topUpBalance() {
-            const amount = document.getElementById('topupAmount').value;
-            const response = await fetch('/api/users/1/top-up/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: amount })
-            });
-            const data = await response.json();
+    <div class="col-md-8 mb-4">
+        <div class="card p-4 shadow border-warning h-100">
+            <h5 class="text-warning fw-bold mb-3">Активні матчі (Введення результатів)</h5>
+            <div id="adminMatchesList"></div>
+        </div>
+    </div>
+  </div>
 
-            if (response.ok) {
-                alert("✅ " + data.message + "\nВаш новий баланс: " + data.new_balance);
-            } else {
-                alert("❌ Помилка: " + data.error);
-            }
-        }
+</div>
 
-        // Відправляємо запит на створення ставки
-        async function placeBet() {
-            const amount = document.getElementById('betAmount').value;
-            const result = document.getElementById('betResult').value;
+<script>
+  const API = '/api';
+  let user = null;
+  let selMatch = null, selResult = null, selOdds = null;
+  let allMatches = [];
 
-            const response = await fetch('/api/bets/place/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: 1,
-                    matchId: 1,
-                    amount: amount,
-                    predictedResult: parseInt(result)
-                })
-            });
-            const data = await response.json();
+  function toast(msg, ok = true) {
+    const div = document.createElement('div');
+    div.className = `alert alert-${ok ? 'success' : 'danger'} py-3 px-4 shadow-lg text-light border-0`;
+    div.style.cssText = `background-color: ${ok ? '#198754' : '#dc3545'}; min-width:280px; font-weight:600; border-radius:12px;`;
+    div.textContent = msg;
+    document.getElementById('toast-container').appendChild(div);
+    setTimeout(() => div.remove(), 4000);
+  }
 
-            if (response.ok) {
-                alert("✅ " + data.message + "\nЗалишок на балансі: " + data.remaining_balance);
-            } else {
-                alert("❌ Помилка: " + data.error);
-            }
-        }
-    </script>
+  function switchTab(t) {
+    const isLogin = t === 'login';
+    document.getElementById('tabLoginBtn').classList.toggle('active', isLogin);
+    document.getElementById('tabRegBtn').classList.toggle('active', !isLogin);
+    document.getElementById('tabLogin').classList.toggle('d-none', !isLogin);
+    document.getElementById('tabReg').classList.toggle('d-none', isLogin);
+  }
+
+  function setTopup(v) { document.getElementById('topupAmount').value = v; }
+  function updateBalance(bal) { document.getElementById('navBalance').textContent = parseFloat(bal).toFixed(2) + ' ₴'; if (user) user.balance = bal; }
+
+  async function doLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value;
+    const res = await fetch(`${API}/players/login/`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      user = data; document.getElementById('navName').textContent = data.username;
+      document.getElementById('navInfo').classList.remove('d-none');
+
+      // ПОКАЗУЄМО КНОПКУ АДМІНА ТІЛЬКИ ДЛЯ ЛОГІНА admin
+      if (data.username.toLowerCase() === 'admin') {
+          document.getElementById('btnAdmin').classList.remove('d-none');
+      } else {
+          document.getElementById('btnAdmin').classList.add('d-none');
+      }
+
+      updateBalance(data.balance);
+      document.getElementById('pageAuth').classList.add('d-none');
+      document.getElementById('pageDash').classList.remove('d-none');
+      loadMatches(); toast('Успішний вхід!');
+    } else toast(data.error || 'Помилка входу', false);
+  }
+
+  async function doRegister() {
+    const username = document.getElementById('regUser').value.trim();
+    const password = document.getElementById('regPass').value;
+    const res = await fetch(`${API}/players/`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast('Акаунт створено! Увійдіть в систему.');
+      switchTab('login'); document.getElementById('loginUser').value = username;
+    } else toast(data.error || 'Помилка реєстрації', false);
+  }
+
+  function logout() {
+    user = null; selMatch = null;
+    document.getElementById('pageProfile').classList.add('d-none');
+    document.getElementById('pageAdmin').classList.add('d-none');
+    document.getElementById('pageDash').classList.add('d-none');
+    document.getElementById('pageAuth').classList.remove('d-none');
+    document.getElementById('navInfo').classList.add('d-none');
+  }
+
+  async function showProfile() {
+    document.getElementById('pageDash').classList.add('d-none');
+    document.getElementById('pageAdmin').classList.add('d-none');
+    document.getElementById('pageProfile').classList.remove('d-none');
+
+    const res = await fetch(`${API}/players/${user.playerId}/`);
+    const data = await res.json();
+
+    document.getElementById('profileName').textContent = data.username;
+    document.getElementById('profileBalance').textContent = parseFloat(data.balance).toFixed(2) + ' ₴';
+
+    const betLabels = {1: 'П1', 2: 'П2', 3: 'Нічия'};
+    const betStatuses = {0: '<span class="text-warning">Очікується</span>', 1: '<span class="text-success">Виграш</span>', 2: '<span class="text-danger">Програш</span>'};
+
+    if(data.bets.length > 0) {
+        document.getElementById('profileBetsList').innerHTML = data.bets.map(b => `
+          <div class="history-item">
+            <div>
+              <div class="text-light fw-bold">${b.matchName}</div>
+              <div class="text-muted small">Прогноз: ${betLabels[b.predictedResult]} (x${parseFloat(b.placedOdds).toFixed(2)})</div>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold text-info">${parseFloat(b.amount).toFixed(2)} ₴</div>
+              <div class="small">${betStatuses[b.status]}</div>
+            </div>
+          </div>
+        `).join('');
+    } else document.getElementById('profileBetsList').innerHTML = '<div class="text-center text-muted mt-4">Ви ще не робили ставок</div>';
+
+    if(data.transactions.length > 0) {
+        const txLabels = {1: 'Поповнення', 2: 'Ставка', 3: 'Виведення', 4: 'Бонус', 5: 'Виграш ставки'};
+        const txColors = {1: 'text-success', 2: 'text-danger', 3: 'text-warning', 4: 'text-info', 5: 'text-success'};
+
+        document.getElementById('profileTxList').innerHTML = data.transactions.map(t => {
+          const isPositive = (t.type === 1 || t.type === 4 || t.type === 5);
+          return `
+          <div class="history-item">
+            <div>
+              <div class="text-light">${txLabels[t.type] || 'Транзакція'}</div>
+              <div class="text-muted small">${t.date}</div>
+            </div>
+            <div class="fw-bold ${txColors[t.type]}">
+              ${isPositive ? '+' : ''}${parseFloat(t.amount).toFixed(2)} ₴
+            </div>
+          </div>
+        `}).join('');
+    } else document.getElementById('profileTxList').innerHTML = '<div class="text-center text-muted mt-4">Історія порожня</div>';
+  }
+
+  // --- ЛОГІКА АДМІН-ПАНЕЛІ ---
+  function showAdmin() {
+    document.getElementById('pageDash').classList.add('d-none');
+    document.getElementById('pageProfile').classList.add('d-none');
+    document.getElementById('pageAdmin').classList.remove('d-none');
+    loadAdminMatches();
+  }
+
+  async function adminCreateMatch() {
+    const t1 = document.getElementById('admTeam1').value;
+    const t2 = document.getElementById('admTeam2').value;
+    const o1 = document.getElementById('admOdd1').value;
+    const oX = document.getElementById('admOddX').value;
+    const o2 = document.getElementById('admOdd2').value;
+    const cat = document.getElementById('admCat').value;
+
+    if(!t1 || !t2 || !o1 || !oX || !o2) { toast('Заповніть всі поля!', false); return; }
+
+    const res = await fetch(`${API}/matches/create/`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ team1Name: t1, team2Name: t2, oddsTeam1: o1, oddsTeam2: o2, oddsDraw: oX, category: cat })
+    });
+    if (res.ok) {
+      toast('Матч успішно додано!');
+      loadAdminMatches(); // Оновлюємо список
+      document.getElementById('admTeam1').value = ''; document.getElementById('admTeam2').value = '';
+    } else toast('Помилка', false);
+  }
+
+  async function loadAdminMatches() {
+    const res = await fetch(`${API}/matches/`);
+    const matches = await res.json();
+    const list = document.getElementById('adminMatchesList');
+
+    if(!matches.length) { list.innerHTML = '<div class="text-muted">Активних матчів немає</div>'; return; }
+
+    list.innerHTML = matches.map(m => `
+      <div class="history-item flex-wrap">
+        <div class="mb-2 w-100 d-flex justify-content-between">
+          <span class="fw-bold text-light">${m.team1Name} <span class="text-muted small">VS</span> ${m.team2Name}</span>
+          <span class="badge bg-secondary">${m.category}</span>
+        </div>
+        <div class="d-flex w-100 gap-2">
+            <select class="form-select bg-dark text-light border-secondary" id="res-${m.id}">
+                <option value="1">Перемога 1 (${m.team1Name})</option>
+                <option value="3">Нічия</option>
+                <option value="2">Перемога 2 (${m.team2Name})</option>
+            </select>
+            <button class="btn btn-warning" onclick="finishMatch(${m.id})">Завершити</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function finishMatch(matchId) {
+    const result = document.getElementById(`res-${matchId}`).value;
+    const res = await fetch(`${API}/matches/${matchId}/finish/`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ result: parseInt(result) })
+    });
+    const data = await res.json();
+    if(res.ok) {
+        toast(data.message);
+        loadAdminMatches();
+        loadMatches();
+    } else toast(data.error, false);
+  }
+
+  function hideProfile() {
+    document.getElementById('pageProfile').classList.add('d-none');
+    document.getElementById('pageAdmin').classList.add('d-none');
+    document.getElementById('pageDash').classList.remove('d-none');
+  }
+
+  // --- ЛОГІКА МАТЧІВ ---
+  async function loadMatches() {
+    document.getElementById('matchList').innerHTML = '<div class="text-center text-muted my-5">Завантаження...</div>';
+    const res = await fetch(`${API}/matches/`);
+    allMatches = await res.json();
+    document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
+    document.querySelector('.category-item').classList.add('active');
+    renderMatches('Всі');
+  }
+
+  function filterCategory(category, element) {
+    document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+    document.getElementById('currentCategoryTitle').textContent = category === 'Всі' ? 'Всі матчі' : ` ${category}`;
+    renderMatches(category);
+  }
+
+  function renderMatches(categoryFilter) {
+    const list = document.getElementById('matchList');
+    const filteredMatches = categoryFilter === 'Всі' ? allMatches : allMatches.filter(m => m.category === categoryFilter);
+
+    if (!filteredMatches.length) {
+      list.innerHTML = `<div class="card p-5 text-center text-muted"><h5>У цій категорії поки немає матчів</h5></div>`;
+      return;
+    }
+
+    list.innerHTML = filteredMatches.map(m => `
+      <div class="match-card p-3">
+        <span class="cat-badge">${m.category}</span>
+        <div class="d-flex justify-content-between align-items-center mb-3 mt-1">
+          <div class="team-name text-light w-100 text-end pe-3">${m.team1Name}</div>
+          <div class="vs-badge">VS</div>
+          <div class="team-name text-light w-100 text-start ps-3">${m.team2Name}</div>
+        </div>
+        <div class="row g-2">
+          <div class="col-4"><div class="odd-btn" id="o-${m.id}-1" onclick="selectBet(${m.id},'${m.team1Name}','${m.team2Name}',1,${m.oddsTeam1})"><div class="odd-label">Перемога 1</div><div class="odd-val text-info">${parseFloat(m.oddsTeam1).toFixed(2)}</div></div></div>
+          <div class="col-4"><div class="odd-btn" id="o-${m.id}-3" onclick="selectBet(${m.id},'${m.team1Name}','${m.team2Name}',3,${m.oddsDraw})"><div class="odd-label">Нічия</div><div class="odd-val text-info">${parseFloat(m.oddsDraw).toFixed(2)}</div></div></div>
+          <div class="col-4"><div class="odd-btn" id="o-${m.id}-2" onclick="selectBet(${m.id},'${m.team1Name}','${m.team2Name}',2,${m.oddsTeam2})"><div class="odd-label">Перемога 2</div><div class="odd-val text-info">${parseFloat(m.oddsTeam2).toFixed(2)}</div></div></div>
+        </div>
+      </div>
+    `).join('');
+    if(selMatch && document.getElementById(`o-${selMatch}-${selResult}`)) document.getElementById(`o-${selMatch}-${selResult}`).classList.add('selected');
+  }
+
+  function selectBet(matchId, t1, t2, result, odds) {
+    document.querySelectorAll('.odd-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById(`o-${matchId}-${result}`).classList.add('selected');
+    selMatch = matchId; selResult = result; selOdds = odds;
+    const labels = {1: t1, 2: t2, 3: 'Нічия'};
+    document.getElementById('betInfo').innerHTML = `<div class="text-light fw-bold mb-1">${t1} vs ${t2}</div><div class="d-flex justify-content-between text-info"><span>Прогноз: ${labels[result]}</span><span class="fw-bold">x${parseFloat(odds).toFixed(2)}</span></div>`;
+    document.getElementById('betInfo').classList.remove('text-center', 'text-muted'); document.getElementById('betInfo').classList.add('text-start');
+  }
+
+  async function placeBet() {
+    if (!selMatch) { toast('Оберіть матч і результат', false); return; }
+    const amount = parseFloat(document.getElementById('betAmount').value);
+    if (!amount || amount <= 0) { toast('Введіть коректну суму', false); return; }
+
+    const res = await fetch(`${API}/bets/place/`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId: user.playerId, matchId: selMatch, amount, predictedResult: selResult })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast('Ставку успішно прийнято!');
+      updateBalance(data.remaining_balance);
+      document.getElementById('betAmount').value = '';
+      document.querySelectorAll('.odd-btn').forEach(b => b.classList.remove('selected'));
+      selMatch = null;
+      document.getElementById('betInfo').innerHTML = 'Оберіть подію зліва.';
+      document.getElementById('betInfo').classList.add('text-center', 'text-muted');
+    } else toast(data.error || 'Помилка', false);
+  }
+
+  async function topUp() {
+    const amount = document.getElementById('topupAmount').value;
+    const promoCode = document.getElementById('promoCode').value;
+    if (!amount || parseFloat(amount) <= 0) { toast('Введіть коректну суму', false); return; }
+
+    const res = await fetch(`${API}/users/${user.playerId}/top-up/`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ amount: amount, promoCode: promoCode })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast(data.message);
+      updateBalance(data.new_balance);
+      document.getElementById('topupAmount').value = '';
+      document.getElementById('promoCode').value = '';
+    } else toast(data.error || 'Помилка', false);
+  }
+
+  async function withdraw() {
+    const amount = document.getElementById('withdrawAmount').value;
+    if (!amount || parseFloat(amount) <= 0) { toast('Введіть коректну суму для виведення', false); return; }
+
+    const res = await fetch(`${API}/users/${user.playerId}/withdraw/`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ amount: amount })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast(data.message);
+      updateBalance(data.new_balance);
+      document.getElementById('withdrawAmount').value = '';
+    } else toast(data.error || 'Помилка виведення', false);
+  }
+</script>
 </body>
 </html>
